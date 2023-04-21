@@ -156,6 +156,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
         self.ghostMode = 0
         self.immortalMode = 0
         self.numPies = 0
+        self.tXp = 0
         self.pieType = 0
         self._isGM = False
         self._gmType = None
@@ -3494,6 +3495,27 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
         else:
             self.notify.warning('removeFishFromTank: cannot find fish')
             return 0
+
+    def b_setTreasureXP(self, experience):
+        self.notify.debug('treasureXP is %d' % experience)
+        if experience <= 30:
+            if experience % 10 == 0:
+                maxHp = self.getMaxHp()
+                maxHp = min(ToontownGlobals.MaxHpLimit, maxHp + 1)
+                self.b_setMaxHp(maxHp)
+                self.toonUp(maxHp)
+            self.setTreasureXP(experience)
+            self.d_setTreasureXP(experience)
+
+
+    def d_setTreasureXP(self, experience):
+        self.sendUpdate('setTreasureXP', [experience])
+
+    def setTreasureXP(self, experience):
+        self.tXp = experience
+
+    def getTreasureXP(self):
+        return self.tXp
 
     def b_setShovel(self, shovelId):
         self.d_setShovel(shovelId)

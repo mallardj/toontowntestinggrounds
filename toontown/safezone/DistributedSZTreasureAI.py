@@ -21,3 +21,5 @@ class DistributedSZTreasureAI(DistributedTreasureAI.DistributedTreasureAI):
                     av.toonUp(self.healAmount * 2)
                 else:
                     av.toonUp(self.healAmount)
+                curtXp = av.getTreasureXP()
+                av.b_setTreasureXP(curtXp + 1)                    

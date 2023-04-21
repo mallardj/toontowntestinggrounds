@@ -547,6 +547,7 @@ dclass DistributedToon : DistributedPlayer {
   setShovel(uint8 = 0) required broadcast ownrecv db;
   setShovelSkill(uint32 = 0) required ownrecv db;
   setWateringCan(uint8 = 0) required broadcast ownrecv db;
+  setTreasureXP(uint32 = 0) required ownrecv db;
   setWateringCanSkill(uint32 = 0) required ownrecv db;
   promoteShovel(uint8) ownrecv;
   promoteWateringCan(uint8) ownrecv;
