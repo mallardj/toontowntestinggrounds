@@ -3498,8 +3498,8 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
 
     def b_setTreasureXP(self, experience):
         self.notify.debug('treasureXP is %d' % experience)
-        if experience <= 30:
-            if experience % 10 == 0:
+        if experience <= 6:
+            if experience % 2 == 0:
                 maxHp = self.getMaxHp()
                 maxHp = min(ToontownGlobals.MaxHpLimit, maxHp + 1)
                 self.b_setMaxHp(maxHp)

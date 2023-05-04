@@ -9,6 +9,8 @@ from toontown.toonbase import ToontownGlobals
 from toontown.toonbase import TTLocalizer
 from toontown.quest import QuestBookPoster
 from direct.directnotify import DirectNotifyGlobal
+from direct.interval.LerpInterval import LerpScaleInterval
+from direct.interval.IntervalGlobal import *
 
 class QuestPage(ShtikerPage.ShtikerPage):
     notify = DirectNotifyGlobal.directNotify.newCategory('QuestPage')
@@ -48,19 +50,27 @@ class QuestPage(ShtikerPage.ShtikerPage):
           0,
           0))
         self.questFrames = []
+        self.questGrowIntervals = []
+        self.questHideIntervals = []
+
+        
         for i in range(ToontownGlobals.MaxQuestCarryLimit):
             frame = QuestBookPoster.QuestBookPoster(reverse=i > 1, mapIndex=i + 1)
             frame.reparentTo(self)
             frame.setPosHpr(*questFramePlaceList[i])
             frame.setScale(1.06)
             self.questFrames.append(frame)
+            scalingIn = LerpScaleInterval(self.questFrames[i], 0.1, 1.06,0)
+            scalingOut = LerpScaleInterval(self.questFrames[i], 0.1, 0, 1.06)
+            self.questGrowIntervals.append(scalingIn)
+            self.questHideIntervals.append(scalingOut)
 
         self.accept('questsChanged', self.updatePage)
         return
 
     def acceptOnscreenHooks(self):
         self.accept(ToontownGlobals.QuestsHotkeyOn, self.showQuestsOnscreen)
-        self.accept(ToontownGlobals.QuestsHotkeyOff, self.hideQuestsOnscreen)
+        self.accept(ToontownGlobals.QuestsHotkeyOff, self.hideQuestsOnScreenKey)
 
     def ignoreOnscreenHooks(self):
         self.ignore(ToontownGlobals.QuestsHotkeyOn)
@@ -136,37 +146,45 @@ class QuestPage(ShtikerPage.ShtikerPage):
 
     def showQuestsOnscreen(self):
         messenger.send('wakeup')
-        timedif = globalClock.getRealTime() - self.lastQuestTime
-        if timedif < 0.7:
-            return
-        self.lastQuestTime = globalClock.getRealTime()
         if self.onscreen or base.localAvatar.invPage.onscreen:
             return
         self.onscreen = 1
+        showParallel = Parallel()
         for i in range(ToontownGlobals.MaxQuestCarryLimit):
             if hasattr(self.questFrames[i], 'mapIndex'):
+                if self.questHideIntervals[i].isPlaying():
+                    self.questHideIntervals[i].stop()
+                showParallel.append(self.questGrowIntervals[i])
                 self.questFrames[i].mapIndex.show()
-
         self.updatePage()
         self.reparentTo(aspect2d)
         self.title.hide()
         self.show()
+        showParallel.start()
+
+    def hideQuestsOnScreenKey(self):
+        self.hideQuestsOnscreen(outside=True)
 
     def hideQuestsOnscreenTutorial(self):
         self.setPos(0, 0, 0)
         self.hideQuestsOnscreen()
 
-    def hideQuestsOnscreen(self):
+    def hideQuestsOnscreen(self, outside=False):
         if not self.onscreen:
             return
         self.onscreen = 0
+        hideParallel = Parallel()
         for i in range(ToontownGlobals.MaxQuestCarryLimit):
             if hasattr(self.questFrames[i], 'mapIndex'):
+                if outside:
+                    hideParallel.append(self.questHideIntervals[i])
                 self.questFrames[i].mapIndex.hide()
+        Sequence(hideParallel, Func(self.hide), Func(self.reparentTo, self.book), Func(self.title.show), Func(self.resetToOriginal)).start()
 
-        self.reparentTo(self.book)
-        self.title.show()
-        self.hide()
+
+    def resetToOriginal(self):
+        for i in range(ToontownGlobals.MaxQuestCarryLimit):
+            self.questHideIntervals[i].setT(0)
 
     def canDeleteQuest(self, questDesc):
         return Quests.isQuestJustForFun(questDesc[0], questDesc[3]) and self.onscreen == 0
